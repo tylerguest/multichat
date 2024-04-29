@@ -2,12 +2,12 @@ import tkinter as tk
 from tkinter import scrolledtext
 import requests
 
-API_URL_1 = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
-API_URL_2 = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct"
-API_URL_3 = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1"
-API_URL_4 = "https://api-inference.huggingface.co/models/google/gemma-7b"
-API_URL_5 = "https://api-inference.huggingface.co/models/openai-community/gpt2"
-API_URL_6 = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct"
+API_URLS = [
+    "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2",
+    "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct",
+    "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1",
+    "https://api-inference.huggingface.co/models/google/gemma-7b",
+]
 
 headers = {"Authorization": "Bearer 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"}
 
@@ -20,53 +20,28 @@ def query(api_url, payload):
         return None
 
 def generate_response():
-    # Pre-prompt for the final model
-    prePrompt = """
-                Based on the insights and perspectives shared by the other models, 
-                please synthesize a comprehensive and cohesive response that 
-                addresses the user's input in the most informative and engaging 
-                manner possible.
-                """
-    
-    # Pre-prompt specifically for the first five models
-    pre_prompt_first_five = """
-                             You are generating responses for a final model to use for a
-                             final response. Please provide a response to the following user input
-                             that is informative and will allow the final model to generate a 
-                             cohesive and comprehensive response.
-                             """
-
-    # Get user input from the text field                         
+    # Get user input from the text field
     user_input = user_input_text.get("1.0", tk.END).strip()
-    
-    # Generate response from the first model
-    response1 = query(API_URL_1, {"inputs": pre_prompt_first_five + "\n\n" + user_input})
-    generated_text_1 = response1[0]["generated_text"]
-    
-    # Use the response from the first model as input for the second model
-    response2 = query(API_URL_2, {"inputs": pre_prompt_first_five + "\n\n" + user_input})
-    generated_text_2 = response2[0]["generated_text"]
 
-    # Use the response from the first model as input for the second model
-    response3 = query(API_URL_3, {"inputs": pre_prompt_first_five + "\n\n" + user_input})    
-    generated_text_3 = response3[0]["generated_text"]
+    # Initialize the response
+    response = user_input
 
-    # Use the response from the first model as input for the second model
-    response4 = query(API_URL_4, {"inputs": pre_prompt_first_five + "\n\n" + user_input})
-    generated_text_4 = response4[0]["generated_text"]
+    # Refine the response iteratively
+    for i in range(5):  # refine 5 times
+        # Add additional context to the input
+        input_text = f"Refine the following response to create the most accurate and informative: {response}"
+        api_url = API_URLS[i % len(API_URLS)]  # cycle through the API URLs
+        response_json = query(api_url, {"inputs": input_text})
+        print(response_json)
+        generated_text = response_json[0]["generated_text"]
 
-    # Use the response from the first model as input for the second model
-    response5 = query(API_URL_5, {"inputs": pre_prompt_first_five + "\n\n" + user_input})
-    generated_text_5 = response5[0]["generated_text"]
+        # Update the response
+        response = generated_text
 
-    # Use the response from the other models as input for this model
-    finalAnswer = query(API_URL_6, {"inputs": " ".join([prePrompt, "and", user_input, "and", generated_text_1, "and", generated_text_2,
-                                                        "and", generated_text_3, "and", generated_text_4, "and", generated_text_5])})
+    # Output the refined response from the model to the user
+    bot_output_text.insert(tk.END, "Bot: " + response + "\n\n")
 
-    generated_text_6 = finalAnswer[0]["generated_text"]
-    
-    # Output the response from the third model to the user
-    bot_output_text.insert(tk.END, "Bot: " + generated_text_6 + "\n")
+
 
 # Create main window
 root = tk.Tk()
